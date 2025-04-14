@@ -428,6 +428,6 @@ The pipeline achieves:
 
 ## 14. Conclusion
 
-This project successfully implements a complete pipeline for predicting continuous hand poses from EMG signals. The memory-efficient implementation allows processing on systems with limited resources, while the session-based cross-validation ensures robust model evaluation. The final predictions represent meaningful joint angles that can be used to control virtual or prosthetic hands.
+This project successfully implements a complete pipeline for predicting continuous hand poses from EMG signals. The memory-efficient implementation allows processing on systems with limited resources, while the session-based cross-validation ensures robust model evaluation. The final predictions represent meaningful joint angles that can be used to control virtual or prosthetic hands
 
 The scientific approach combining signal processing, machine learning, and memory optimization techniques demonstrates that EMG signals can be effectively translated into continuous, multi-DOF hand pose estimations.
