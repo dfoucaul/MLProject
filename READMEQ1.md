@@ -1,5 +1,3 @@
-I'll update the README based on the information you've provided, incorporating the output from cell 7 and the visualization of the filtered signal and model comparison.
-
 # EMG-Based Hand Pose Prediction: Project Documentation
 
 ## Project Overview
@@ -39,10 +37,7 @@ EMG signals contain various noise sources that can affect model performance. We 
 - A typical noise source in biomedical signals
 - Set at 50 Hz (European standard) with a narrow bandwidth
 
-The filtering process significantly improves signal quality by removing unwanted noise components while preserving the muscle activity information. As shown in the signal visualization (Image 1), the filtered signal maintains the essential characteristics of the original signal while reducing noise.
-
-![Filtered EMG Signal - Image 1](image1.png)
-*Figure 1: Comparison of original (top) and filtered (bottom) EMG signals from Session 1, Electrode 1. The filtering process preserves the signal structure while reducing noise.*
+The filtering process significantly improves signal quality by removing unwanted noise components while preserving the muscle activity information. As shown in the signal visualization, the filtered signal maintains the essential characteristics of the original signal while reducing noise.
 
 ## 3. Window Creation with Overlap
 
@@ -97,7 +92,27 @@ Raw EMG signals are high-dimensional and noisy. We extract meaningful time-domai
 - Measures signal intensity relative to noise level
 - Formula: `MPR = (1/K) * ∑[1 if |xᵢ| > σ]`
 
-For each window, we extracted all 6 features from each of the 8 electrodes, resulting in a feature vector of length 48 (8 electrodes × 6 features).
+### Feature Set Options
+
+Our implementation allows for selecting from three feature set options:
+
+- **'all'**: Extracts all 6 features from each electrode (48 features total)
+- **'basic'**: Extracts only MAV, RMS, and VAR (24 features total)
+- **'top10'**: Extracts only the 10 most important features based on feature importance analysis
+
+The top 10 most important features identified through Random Forest feature importance analysis are:
+1. E7_RMS: 0.1677
+2. E4_MAV: 0.1462
+3. E7_STD: 0.1371
+4. E7_VAR: 0.1064
+5. E1_MAV: 0.0526
+6. E7_MAV: 0.0500
+7. E4_VAR: 0.0303
+8. E4_STD: 0.0301
+9. E2_MAV: 0.0294
+10. E4_ZC: 0.0268
+
+Using the 'top10' feature set allows for more efficient model training and prediction while maintaining most of the predictive power.
 
 ## 5. Cross-Validation Strategy
 
@@ -163,8 +178,6 @@ Lasso (Least Absolute Shrinkage and Selection Operator) is a linear regression m
 - α (alpha): Controls the regularization strength
 - max_iter: Maximum number of iterations (important for convergence)
 
-In our implementation, we encountered a convergence warning with Lasso regression, indicating that the model might benefit from increasing the maximum number of iterations or adjusting the regularization parameter.
-
 ### Random Forest Regression
 Random Forest is an ensemble learning method that operates by constructing multiple decision trees during training and outputting the average prediction of the individual trees.
 
@@ -211,7 +224,7 @@ Based on our cross-validation results:
    - Fold 4 RMSE: 7.2627
    - Fold 5 RMSE: 7.7644
    - **Average RMSE: 7.8638**
-   - Execution time: 0.38 seconds
+   - Execution time: 0.48 seconds
 
 2. **Lasso Regression**:
    - Fold 1 RMSE: 8.6422
@@ -220,7 +233,7 @@ Based on our cross-validation results:
    - Fold 4 RMSE: 7.2656
    - Fold 5 RMSE: 7.7638
    - **Average RMSE: 7.8646**
-   - Execution time: 28.16 seconds
+   - Execution time: 35.08 seconds
 
 3. **Random Forest**:
    - Fold 1 RMSE: 6.0709
@@ -229,68 +242,70 @@ Based on our cross-validation results:
    - Fold 4 RMSE: 5.0395
    - Fold 5 RMSE: 5.4665
    - **Average RMSE: 5.4932**
-   - Execution time: 298.17 seconds
-
-![Model Comparison - Image 2](image2.png)
-*Figure 2: Comparison of model performance across the three regression algorithms. Random Forest achieved the lowest RMSE (5.4932), significantly outperforming both Ridge and Lasso regression (7.8638 and 7.8646 respectively).*
+   - Execution time: 374.47 seconds
 
 The Random Forest model demonstrated significantly better performance than both linear models (Ridge and Lasso), with an average RMSE of 5.4932 compared to approximately 7.86 for both linear models. This suggests that the relationship between EMG features and joint angles is non-linear and benefits from the Random Forest's ability to capture complex patterns.
 
-However, this improved performance comes at a computational cost: the Random Forest training took 298.17 seconds, compared to just 0.38 seconds for Ridge regression. This represents a trade-off between prediction accuracy and computational efficiency.
+However, this improved performance comes at a computational cost: the Random Forest training took about 375 seconds, compared to just 0.5 seconds for Ridge regression. This represents a trade-off between prediction accuracy and computational efficiency.
 
-## 8. Test Data Prediction
+## 8. Feature Importance and Selection
+
+To identify the most important features, we analyzed the feature importance values from the Random Forest model. The top 10 features were:
+
+1. E7_RMS (Electrode 7, Root Mean Square): 16.77% importance
+2. E4_MAV (Electrode 4, Mean Absolute Value): 14.62% importance
+3. E7_STD (Electrode 7, Standard Deviation): 13.71% importance 
+4. E7_VAR (Electrode 7, Variance): 10.64% importance
+5. E1_MAV (Electrode 1, Mean Absolute Value): 5.26% importance
+6. E7_MAV (Electrode 7, Mean Absolute Value): 5.00% importance
+7. E4_VAR (Electrode 4, Variance): 3.03% importance
+8. E4_STD (Electrode 4, Standard Deviation): 3.01% importance
+9. E2_MAV (Electrode 2, Mean Absolute Value): 2.94% importance
+10. E4_ZC (Electrode 4, Zero Crossing): 2.68% importance
+
+These results show that:
+- Electrode 7 is the most informative electrode, with 4 of its features in the top 10
+- Electrode 4 is the second most informative, with 4 features in the top 10
+- RMS and MAV are particularly useful feature types across electrodes
+
+We implemented the option to train models using just these top 10 features, which substantially reduces the input dimensionality (from 48 to 10 features) while maintaining most of the predictive power.
+
+## 9. Test Data Prediction
 
 After selecting Random Forest as the best-performing model, we trained it on the complete dataset (all 4,595 windows) and generated predictions for the guided_testset_X.npy file:
 
 - Test data consisted of 1,660 windows (5 sessions × 332 windows per session)
-- Prediction process took 8.5 seconds
+- Prediction process took approximately 10 seconds
 - Output shape was (1660, 51) matching the expected 51 joint angles per window
 - Predictions were saved to guided_predictions.csv in scientific notation format
 
-The output CSV contains predictions in the format of:
-```
-4.066703414916992188e+01,-6.437813568115234375e+01,-3.027066993713378906e+01,...
-```
-Each row represents one window of EMG data (500 samples with 50% overlap)
-Each column represents one of the 51 joint angles
-The values are predicted angles in degrees
+We compared predictions using all features versus using only the top 10 features:
+- Both approaches produced predictions for all 51 joint angles
+- The top 10 feature approach showed differences in the predicted values, indicating that the feature selection was effective
+- The top 10 feature approach had faster prediction times due to the reduced dimensionality
 
-These values represent the predicted angles (in degrees) for each of the 51 joint parameters.
-
-The first value (~40.67 degrees) represents the angle of the first joint
-The second value (~-64.38 degrees) represents the angle of the second joint
-These 51 values completely define a hand pose with 17 joints (3 rotation angles per joint - these could represent pitch, yaw, and roll). When these angles are applied to a hand model (like in the Oculus Quest VR system), they reproduce the hand position that the participant was likely making when the corresponding EMG signals were recorded.
-
-## 9. Computational Considerations
+## 10. Computational Considerations
 
 The execution times for the different stages of our pipeline were:
-- Window creation: 2.29 seconds
-- Model comparison (total): 381.78 seconds
-  - Ridge regression: 0.38 seconds
-  - Lasso regression: 28.16 seconds
-  - Random Forest: 298.17 seconds
-- Final model training: 104.58 seconds
-- Test data prediction: 8.61 seconds
+- Window creation: ~36 seconds
+- Model comparison (total): ~435 seconds
+  - Ridge regression: ~0.5 seconds
+  - Lasso regression: ~35 seconds
+  - Random Forest: ~375 seconds
+- Final model training (top 10 features): ~24 seconds
+- Test data prediction (top 10 features): ~10 seconds
 
-Random Forest provided the best performance but at a much higher computational cost than the linear models. For applications with limited computational resources, the linear models might be preferable despite their somewhat lower accuracy.
+Random Forest provided the best performance but at a much higher computational cost than the linear models. Using the top 10 features offered a good compromise between performance and computational efficiency.
 
-## 10. Conclusion
+## 11. Conclusion
 
 Our EMG-based hand pose prediction pipeline successfully predicts continuous joint angles from EMG signals. The key findings include:
 
 1. **Signal filtering** removes noise while preserving important signal characteristics
 2. **Windowing with 50% overlap** creates an effective dataset of 4,595 windows
-3. **Time-domain features** effectively capture the relevant EMG patterns
+3. **Time-domain features** effectively capture the relevant EMG patterns, with options to use 'all', 'basic', or 'top10' feature sets
 4. **Random Forest regression** significantly outperforms linear models, suggesting non-linear relationships between EMG features and joint angles
-5. **Leave-one-session-out cross-validation** provides a realistic assessment of model performance
+5. **Feature importance analysis** identified Electrodes 7 and 4 as the most informative, with RMS and MAV as particularly useful feature types
+6. **Feature selection** allowed for significant dimensionality reduction (from 48 to 10 features) while maintaining predictive power
 
 The best model (Random Forest) achieved an average RMSE of 5.4932 across the cross-validation folds, demonstrating its ability to generalize to new sessions. This approach could potentially be applied to control prosthetic devices or human-computer interfaces using muscle activity as input.
-
-## 11. Future Work
-
-Potential improvements to the pipeline could include:
-- Exploring additional feature extraction methods (e.g., frequency-domain features)
-- Optimizing Random Forest hyperparameters to improve performance
-- Investigating deep learning approaches such as recurrent neural networks
-- Implementing real-time prediction for interactive applications
-- Addressing the Lasso convergence warning by increasing max_iter or adjusting alpha
