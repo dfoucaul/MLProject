@@ -1,3 +1,8 @@
 guided_dataset_X.npy
 guided_dataset_y.npy
 guided_testset_X.npy
+
+
+freemoves_dataset_X.npy
+freemoves_dataset_y.npy
+freemoves_testset_X.npy
